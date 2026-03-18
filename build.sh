@@ -1,24 +1,38 @@
 #!/bin/sh
+# NMake Build System - Shell (Linux/Android)
 
-# 1. Check if the file exists
-if [ ! -f "NMake.nmake" ]; then
-    echo "Error: NMake.nmake not found!"
-    exit 1
-fi
+# Set Defaults
+COMPILER="g++"
+STANDARD="-std=c++20"
+FILES=""
 
-# 2. Extract variables using grep/cut
-CC=$(grep "COMPILER=" NMake.nmake | cut -d'=' -f2)
-STD=$(grep "STANDARD=" NMake.nmake | cut -d'=' -f2)
-FILES=$(grep "FILES=" NMake.nmake | cut -d'=' -f2)
-OUT=$(grep "OUTPUT=" NMake.nmake | cut -d'=' -f2)
-
-# 3. Execute build
-echo "Building $OUT with $CC..."
-mkdir -p $(dirname "$OUT")
-$CC $STD $FILES -o $OUT
-
-if [ $? -eq 0 ]; then
-    echo "Done!"
-else
-    echo "Build failed."
-fi
+while IFS='=' read -r key val || [ -n "$key" ]; do
+    # Strip spaces from the key
+    k=$(echo "$key" | tr -d '[:space:]')
+    
+    case "$k" in
+        COMPILER)
+            COMPILER=$(echo "$val" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            ;;
+        STANDARD)
+            STANDARD=$(echo "$val" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            ;;
+        FILES)
+            # Strip { } and , to make it a clean list for g++
+            FILES=$(echo "$val" | tr -d '{},')
+            ;;
+        OUTPUT)
+            OUT=$(echo "$val" | tr -d '[:space:]')
+            echo "[BUILD] Generating $OUT..."
+            mkdir -p "$(dirname "$OUT")"
+            $COMPILER $STANDARD $FILES -o "$OUT"
+            [ $? -eq 0 ] && echo "Success." || echo "Build Failed."
+            ;;
+        RUN)
+            # Execute the command exactly as written in the value
+            cmd=$(echo "$val" | sed 's/^[[:space:]]*//')
+            echo "[EXEC] $cmd"
+            eval "$cmd"
+            ;;
+    esac
+done < NMake.nmake
