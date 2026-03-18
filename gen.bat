@@ -1,5 +1,5 @@
-:; ./do.sh; exit $?
+:; ./build.sh; exit $?
 
 @echo off
 
-call do.cmd
+call build.cmd
